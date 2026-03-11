@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowers Management System</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>">
+
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#34C759',
+                        secondary: '#007AFF',
+                        dark: '#1D1D1F',
+                        appbg: '#FBFBFD',
+                    },
+                    boxShadow: {
+                        'soft': '0px 4px 14px rgba(67,46,134,0.05)',
+                        'softer': '0px 2px 7px rgba(67,46,134,0.04)',
+                    },
+                    borderRadius: {
+                        'xl': '16px',
+                        '2xl': '24px',
+                        '3xl': '32px',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body
+    class="bg-appbg font-sans tracking-tight text-gray-900 h-screen flex flex-col overflow-hidden dark:bg-gray-900 dark:text-white transition-colors duration-200">
+
+    <!-- Auth Container -->
+    <div id="auth-container"
+        class="hidden absolute inset-0 z-50 bg-appbg dark:bg-gray-900 transition-colors duration-200 flex flex-col px-4 sm:px-6 lg:px-8 items-center justify-center">
+    </div>
+
+    <!-- App Container -->
+    <div id="app-container" class="hidden flex flex-col h-full w-full transition-opacity duration-300">
+
+        <!-- Header -->
+        <header
+            class="sticky top-0 bg-white/70 backdrop-blur-xl z-20 border-b border-gray-100 dark:bg-gray-800/80 dark:border-gray-700 transition-all duration-300">
+            <div class="w-full px-3 sm:px-5 lg:px-8">
+                <div class="flex justify-between items-center h-14 sm:h-16">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i data-lucide="flower-2" class="text-primary h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"></i>
+                        <h1 class="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary whitespace-nowrap"
+                            title="Flowers Management System">
+                            FMS
+                        </h1>
+                    </div>
+                    <div class="hidden sm:flex items-center mx-4 flex-1 max-w-md">
+                        <div class="relative w-full">
+                            <i data-lucide="search"
+                                class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+                            <input type="text" id="global-search-input" onkeyup="handleGlobalSearch(this.value)"
+                                placeholder="Search members by name or ID..."
+                                class="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-primary/50 focus:bg-white dark:focus:bg-gray-800 rounded-full dark:text-white outline-none transition-all placeholder-gray-400">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                        <button onclick="toggleMobileSearch()"
+                            class="sm:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            title="Search">
+                            <i data-lucide="search" class="h-5 w-5 text-gray-600 dark:text-gray-300"></i>
+                        </button>
+                        <button onclick="toggleTheme()"
+                            class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            title="Toggle Theme">
+                            <i data-lucide="moon" class="h-5 w-5 text-gray-600 dark:hidden"></i>
+                            <i data-lucide="sun" class="h-5 w-5 text-yellow-400 hidden dark:block"></i>
+                        </button>
+                        <button id="reset-data-btn"
+                            class="hidden sm:inline-block text-xs text-red-500 hover:text-red-700 underline whitespace-nowrap">Reset
+                            Data</button>
+                        <button onclick="logout()"
+                            class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors whitespace-nowrap px-2 py-1">Logout</button>
+                    </div>
+                </div>
+                <!-- Mobile Search Bar (Hidden by default) -->
+                <div id="mobile-search-container" class="hidden pb-3">
+                    <div class="relative w-full">
+                        <i data-lucide="search"
+                            class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+                        <input type="text" id="mobile-global-search-input" onkeyup="handleGlobalSearch(this.value)"
+                            placeholder="Search members..."
+                            class="w-full pl-9 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-primary/50 focus:bg-white dark:focus:bg-gray-800 rounded-xl dark:text-white outline-none transition-all placeholder-gray-400">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Results Overlays -->
+        <div id="search-results-overlay"
+            class="hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-sm mt-[60px] sm:mt-[64px]"
+            onclick="closeGlobalSearch()">
+            <div class="max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-2">
+                <div id="search-results-container"
+                    class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-[60vh] overflow-y-auto">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="flex flex-1 overflow-hidden">
+
+            <!-- Sidebar (Desktop only) -->
+            <nav
+                class="hidden md:flex flex-col w-52 lg:w-60 bg-white/50 backdrop-blur-md border-r border-gray-100 pt-4 pb-4 dark:bg-gray-800/50 dark:border-gray-700 transition-colors duration-200 z-10 flex-shrink-0">
+                <div class="flex-1 px-2 space-y-0.5">
+                    <button onclick="switchTab('dashboard')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="dashboard">
+                        <i data-lucide="bar-chart-2"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Dashboard
+                    </button>
+                    <button onclick="switchTab('entries')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="entries">
+                        <i data-lucide="pen-tool"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Daily Entries
+                    </button>
+                    <button onclick="switchTab('members')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="members">
+                        <i data-lucide="users"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Members
+                    </button>
+                    <button onclick="switchTab('settings')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="settings">
+                        <i data-lucide="settings"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Settings &amp; Rates
+                    </button>
+                    <button onclick="switchTab('bills')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="bills">
+                        <i data-lucide="file-text"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Generate Bills
+                    </button>
+                    <button onclick="switchTab('profile')"
+                        class="nav-item w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-600 hover:bg-primary/10 hover:text-primary transition-all duration-200 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                        data-tab="profile">
+                        <i data-lucide="user-circle"
+                            class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-primary dark:text-gray-400 dark:group-hover:text-gray-300"></i>
+                        Profile
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Mobile Bottom Nav -->
+            <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-200 flex justify-around items-stretch z-50 dark:bg-gray-900/95 dark:border-gray-700 transition-colors duration-200"
+                style="padding-bottom: env(safe-area-inset-bottom, 4px);">
+                <button onclick="switchTab('dashboard')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="dashboard">
+                    <i data-lucide="bar-chart-2" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Dash</span>
+                </button>
+                <button onclick="switchTab('entries')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="entries">
+                    <i data-lucide="pen-tool" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Entries</span>
+                </button>
+                <button onclick="switchTab('members')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="members">
+                    <i data-lucide="users" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Members</span>
+                </button>
+                <button onclick="switchTab('settings')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="settings">
+                    <i data-lucide="settings" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Rates</span>
+                </button>
+                <button onclick="switchTab('bills')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="bills">
+                    <i data-lucide="file-text" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Bills</span>
+                </button>
+                <button onclick="switchTab('profile')"
+                    class="nav-item-mobile flex flex-col items-center justify-center flex-1 py-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    data-tab="profile">
+                    <i data-lucide="user-circle" class="h-5 w-5"></i>
+                    <span class="text-[10px] mt-0.5 font-medium">Profile</span>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <main
+                class="flex-1 overflow-y-auto overflow-x-hidden bg-appbg p-3 sm:p-5 md:p-6 lg:p-8 pb-24 md:pb-6 dark:bg-gray-900 transition-colors duration-200"
+                id="main-content">
+                <!-- Dynamic Content Injected Here -->
+            </main>
+        </div>
+
+        <!-- Hidden Printable Area (Off-screen but rendered for html2canvas) -->
+        <div id="printable-area" style="position: absolute; left: -9999px; top: 0;" class="bg-white p-8 text-black">
+        </div>
+
+        <!-- Modal Container -->
+        <div id="modal-overlay"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center opacity-0 transition-opacity duration-300"
+            onclick="closeModal(event)">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-soft w-full max-w-md mx-4 transform scale-95 transition-transform duration-300"
+                onclick="event.stopPropagation()">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Edit Member</h3>
+                    <button onclick="closeModal()"
+                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                <!-- Modal Body -->
+                <div id="modal-body" class="p-4 space-y-4">
+                    <!-- Content injected via JS -->
+                </div>
+                <!-- Modal Footer -->
+                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button onclick="closeModal()"
+                        class="px-6 py-2.5 bg-gray-100/80 text-gray-700 font-medium rounded-xl hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+                    <button id="modal-save-btn"
+                        class="px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-opacity-90 transition-all hover:scale-[1.02] shadow-sm">Save</button>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End App Container -->
+
+    <!-- Application Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>
